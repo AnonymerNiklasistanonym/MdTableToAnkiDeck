@@ -83,6 +83,8 @@ class AnkiDeckCreator(object):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
         with open(curr_dir + '/stylesheet.css', 'r') as cssFile:
             self.css_code = cssFile.read()
+        with open(curr_dir + '/highlightJs_renderer.html', 'r') as highlightF:
+            self.highlightJs_template_code = highlightF.read()
         with open(curr_dir + '/kaTex_renderer.html', 'r') as kaTexHtmlFile:
             self.kaTex_template_code = kaTexHtmlFile.read()
         with open(curr_dir + '/mathJax_renderer.html', 'r') as mathJaxHtmlFile:
@@ -94,9 +96,14 @@ class AnkiDeckCreator(object):
             css=self.css_code,
             templates=[{
                 'name': 'Card 1',
-                'qfmt': self.kaTex_template_code + '{{Question}}',
+                'qfmt': self.highlightJs_template_code +
+                        self.kaTex_template_code + '{{Question}}',
                 'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}',
             }])
+
+    @staticmethod
+    def source_code_replace(match: Optional[Match[str]]) -> str:
+        return match.group().replace('<br>', '\n')
 
     def add_note(self, note_id: str, note_question: str, note_answer: str,
                  note_files: list):
@@ -124,6 +131,12 @@ class AnkiDeckCreator(object):
                 .replace('"' + remove_file_path + '/', '"')
             note_answer = note_answer\
                 .replace('"' + remove_file_path + '/', '"')
+        # Fix source codes
+        source_code_regex = r"<pre.*?>(.*)</pre>"
+        note_answer = re.sub(source_code_regex, self.source_code_replace,
+                             note_answer)
+        note_question = re.sub(source_code_regex, self.source_code_replace,
+                               note_question)
         # Unicode decode
         note_question = note_question.encode('utf-8', 'xmlcharrefreplace')\
             .decode('utf-8')\

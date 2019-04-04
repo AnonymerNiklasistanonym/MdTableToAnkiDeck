@@ -77,7 +77,7 @@
     } catch (e) {
         console.error(e);
         // If any error comes up get the scripts and run it then
-        console.info("MdTableToAnkiDeck Error get scripts and the render");
+        console.info("MdTableToAnkiDeck Error get scripts and then render");
         getScripts(() => {
             console.info("Katex scripts loaded, execute renderer");
             renderMethodMdTableToAnkiDeck();
