@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import sys
 import re
@@ -24,7 +25,7 @@ def cli_open_man_page():
 
 
 def cli_show_version():
-    print("0.0.1")
+    print("0.0.2")
     sys.exit(0)
 
 
@@ -79,43 +80,23 @@ class AnkiDeckCreator(object):
         self.note_matrix = []
         # Create a deck and a model for the cards with MathJax support
         self.deck = genanki.Deck(self.deck_id, self.deck_name)
-        self.mathJax_template_code = """
-            <script type="text/x-mathjax-config">
-            MathJax.Hub.processSectionDelay = 0;
-            MathJax.Hub.Config({
-            messageStyle: 'none',
-            showProcessingMessages: false,
-            tex2jax: {
-                inlineMath: [['$', '$']],
-                displayMath: [['$$', '$$']],
-                processEscapes: true
-            }
-            });
-            </script>
-            <script type="text/javascript">
-            (function() {
-            if (window.MathJax != null) {
-                var card = document.querySelector('.card');
-                MathJax.Hub.Queue(['Typeset', MathJax.Hub, card]);
-                return;
-            }
-            var script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/' + 
-                '2.7.1/MathJax.js?config=TeX-MML-AM_CHTML';
-            document.body.appendChild(script);
-            })();
-            </script>"""
+        curr_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(curr_dir + '/stylesheet.css', 'r') as cssFile:
+            self.css_code = cssFile.read()
+        with open(curr_dir + '/kaTex_renderer.html', 'r') as kaTexHtmlFile:
+            self.kaTex_template_code = kaTexHtmlFile.read()
+        with open(curr_dir + '/mathJax_renderer.html', 'r') as mathJaxHtmlFile:
+            self.mathJax_template_code = mathJaxHtmlFile.read()
         self.model = genanki.Model(
-            6666666666,
-            'Card with MathJax',
+            11111111,
+            'Card with Math',
             fields=[{'name': 'Question'}, {'name': 'Answer'}],
+            css=self.css_code,
             templates=[{
                 'name': 'Card 1',
                 'qfmt': '{{Question}}' +
-                        self.mathJax_template_code,
-                'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}' +
-                        self.mathJax_template_code,
+                        self.kaTex_template_code,
+                'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}',
             }])
 
     def add_note(self, note_id: str, note_question: str, note_answer: str,
@@ -144,12 +125,24 @@ class AnkiDeckCreator(object):
                 .replace('"' + remove_file_path + '/', '"')
             note_answer = note_answer\
                 .replace('"' + remove_file_path + '/', '"')
+        # Unicode decode
+        note_question = note_question.encode('utf-8', 'xmlcharrefreplace')\
+            .decode('utf-8')\
+            .replace("Ä", "&Auml;").replace("ä", "&auml;")\
+            .replace("Ö", "&Ouml;").replace("ö", "&ouml;")\
+            .replace("Ü", "&Uuml;").replace("ü", "&uuml;")\
+            .replace("ß", "&szlig;")
+        note_answer = note_answer.encode('utf-8', 'xmlcharrefreplace') \
+            .decode('utf-8') \
+            .replace("Ä", "&Auml;").replace("ä", "&auml;")\
+            .replace("Ö", "&Ouml;").replace("ö", "&ouml;")\
+            .replace("Ü", "&Uuml;").replace("ü", "&uuml;")\
+            .replace("ß", "&szlig;")
         # Add the note to the deck
         self.deck.add_note(genanki.Note(
             guid=note_id,
             model=self.model,
-            fields=[note_question.replace('<br>', '\n'),
-                    note_answer.replace('<br>', '\n')]))
+            fields=[note_question, note_answer]))
 
         if debug:
             print("note added", note_id, note_question, note_answer, note_files)
@@ -193,7 +186,7 @@ class AnkiDeckCreator(object):
         # Beautify the table
         writer.margin = 1
         # Write to file
-        with open(file_name + '.md', 'w') as file:
+        with open(file_name + '.md', 'w', encoding="utf-8") as file:
             writer.stream = file
             writer.write_table()
 
@@ -203,7 +196,8 @@ class MdExtractor:
     Helper to extract information from the markdown document
     """
     def __init__(self):
-        self.table_regex = r"^.*?\|\s(.*?)\s\|\s(.*?)\s\|\s(.*?)\s\|.*$"
+        self.table_regex =\
+            r"^.*?\|\s+?(.*?)\s+?\|\s+?(.*?)\s+?\|\s+?(.*?)\s+?\|.*$"
         self.title_regex = r"^\#\s(.+?)\s\((.+?)\)"
         self.title_regex_without_id = r"^\#\s(.+)\n"
         self.image_src_regex = r"<img\s*src=\"(.*?)\".*?>"
@@ -303,7 +297,7 @@ if __name__ == '__main__':
         print("remove_file_paths", remove_file_paths)
 
     if len(sys.argv) < 2:
-        print('No markdown file was specified!')
+        print("No markdown file was specified!")
         sys.exit(1)
 
     # Constants
@@ -329,7 +323,7 @@ if __name__ == '__main__':
     deck_name_extracted: bool = False
 
     # Open file to read it
-    with open(MARKDOWN_FILE_NAME) as md_table_file:
+    with open(MARKDOWN_FILE_NAME, "r", encoding="utf-8") as md_table_file:
         for line in md_table_file:
             if not deck_name_extracted:
                 deck_name_extracted = True
@@ -341,16 +335,17 @@ if __name__ == '__main__':
                     deck_creator = AnkiDeckCreator(deck_information)
             walk = md_extractor.extract_note(line)
             if debug:
-                print("walk", walk)
+                print("walk", walk, "counter", counter)
             if walk is not None:
-                counter += 1
-                # Ignore heading
-                if counter > 1:
+                # Ignore heading and section between header and body
+                if counter >= 1:
                     deck_creator.add_note(
                         note_id=walk['id'],
                         note_question=walk['question'],
                         note_answer=walk['answer'],
                         note_files=walk['files'])
+                # 0 = Heading, 1 = First row
+                counter += 1
 
     if counter <= 1:
         print('No anki notes were found')
