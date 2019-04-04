@@ -94,8 +94,7 @@ class AnkiDeckCreator(object):
             css=self.css_code,
             templates=[{
                 'name': 'Card 1',
-                'qfmt': '{{Question}}' +
-                        self.kaTex_template_code,
+                'qfmt': self.kaTex_template_code + '{{Question}}',
                 'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}',
             }])
 
