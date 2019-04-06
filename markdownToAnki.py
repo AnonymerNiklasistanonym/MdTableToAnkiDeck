@@ -4,11 +4,10 @@
 import sys
 import re
 import os.path
-from typing import Optional, Match
+from typing import Optional, Match, Set, List
 from shutil import copyfile
 
 import genanki
-import pytablewriter
 import random
 
 
@@ -25,12 +24,12 @@ def cli_open_man_page():
 
 
 def cli_show_version():
-    print("0.0.2")
+    print("0.0.3")
     sys.exit(0)
 
 
 debug: bool = False
-remove_file_paths: list = []
+remove_file_paths: List[str] = []
 
 
 class RegexHelper(object):
@@ -64,31 +63,38 @@ class AnkiDeckCreator(object):
     """
     Helps creating a anki deck
     """
+    files: Set[str] = set()
+    note_matrix: List[List[str]] = []
 
     def __init__(self, deck_info=None):
         # Check first if there is a deck id and if not create one
         if deck_info is None:
-            deck_info = {"id": None, "name": "Test"}
+            if debug:
+                print("No deck info was found, use default deck name")
+            deck_info = {"id": None, "name": "DeckName"}
         if deck_info['id'] is None:
+            if debug:
+                print("No deck info ID was found, generate random int")
             self.deck_id = random.randint(100000, 999999)
         else:
             self.deck_id = int(deck_info['id'])
         # Get the deck name
         self.deck_name = deck_info['name']
-        # Create variables for files + list with all the notes
-        self.files = set()
-        self.note_matrix = []
         # Create a deck and a model for the cards with MathJax support
         self.deck = genanki.Deck(self.deck_id, self.deck_name)
         curr_dir = os.path.dirname(os.path.realpath(__file__))
+        # Get CSS markup code
         with open(curr_dir + '/stylesheet.css', 'r') as cssFile:
             self.css_code = cssFile.read()
+        # Get source code HTML/JS highlighting code
         with open(curr_dir + '/highlightJs_renderer.html', 'r') as highlightF:
             self.highlightJs_template_code = highlightF.read()
+        # Get LaTeX math code HTML/JS render code
         with open(curr_dir + '/kaTex_renderer.html', 'r') as kaTexHtmlFile:
             self.kaTex_template_code = kaTexHtmlFile.read()
-        with open(curr_dir + '/mathJax_renderer.html', 'r') as mathJaxHtmlFile:
-            self.mathJax_template_code = mathJaxHtmlFile.read()
+        # with open(curr_dir + '/mathJax_renderer.html', 'r') as mathJaxFile:
+        #     self.mathJax_template_code = mathJaxFile.read()
+        # Create Card model
         self.model = genanki.Model(
             11111111,
             'Card with Math',
@@ -103,6 +109,11 @@ class AnkiDeckCreator(object):
 
     @staticmethod
     def source_code_replace(match: Optional[Match[str]]) -> str:
+        """
+        Replace in a regex match all `<br>` tags with `\n`
+        :param match: Regex match (groups)
+        :return: The full match with replaced `<br>` tags
+        """
         return match.group().replace('<br>', '\n')
 
     def add_note(self, note_id: str, note_question: str, note_answer: str,
@@ -119,6 +130,8 @@ class AnkiDeckCreator(object):
         # If the note has no id assign one with the unique question/answer
         if note_id is '':
             note_id = genanki.guid_for(note_question, note_answer)
+            if debug:
+                print("No note id was found, generate random id:", note_id)
         # Append the current note to the note matrix
         self.note_matrix.append([
             note_id,
@@ -144,7 +157,7 @@ class AnkiDeckCreator(object):
             .replace("Ö", "&Ouml;").replace("ö", "&ouml;")\
             .replace("Ü", "&Uuml;").replace("ü", "&uuml;")\
             .replace("ß", "&szlig;")
-        note_answer = note_answer.encode('utf-8', 'xmlcharrefreplace') \
+        note_answer = note_answer.encode('utf-8', 'xmlcharrefreplace')\
             .decode('utf-8') \
             .replace("Ä", "&Auml;").replace("ä", "&auml;")\
             .replace("Ö", "&Ouml;").replace("ö", "&ouml;")\
@@ -157,7 +170,8 @@ class AnkiDeckCreator(object):
             fields=[note_question, note_answer]))
 
         if debug:
-            print("note added", note_id, note_question, note_answer, note_files)
+            print("note added", note_id, note_question, note_answer,
+                  note_files)
 
     def write_to_file_anki(self, file_name: str):
         """
@@ -170,14 +184,14 @@ class AnkiDeckCreator(object):
         for file in self.files:
             for remove_file_path in remove_file_paths:
                 if remove_file_path in file:
-                    file_to_delete_later = file\
+                    file_to_delete_later = file \
                         .replace(remove_file_path + '/', '')
                     copyfile(file, file_to_delete_later)
                     files_to_delete.add(file_to_delete_later)
                     self.files.remove(file)
                     self.files.add(file_to_delete_later)
-                    if debug:
-                        print("delete file later", file_to_delete_later)
+        if debug:
+            print("Package the following media files:", self.files)
         my_package.media_files = list(self.files)
         my_package.write_to_file(file_name + '.apkg')
         # Delete copied files
@@ -191,25 +205,27 @@ class AnkiDeckCreator(object):
         Write the markdown file to a specific file
         :param file_name: The file name (Without `.md`)
         """
-        writer = pytablewriter.MarkdownTableWriter()
-        writer.table_name = self.deck_name + ' (' + str(self.deck_id) + ')\n'
-        writer.headers = ["id", "question", "answer"]
-        writer.value_matrix = self.note_matrix
-        # Beautify the table
-        writer.margin = 1
+        table_name = self.deck_name + ' (' + str(self.deck_id) + ')\n'
+        headers = ["id", "question", "answer"]
         # Write to file
         with open(file_name + '.md', 'w', encoding="utf-8") as file:
-            writer.stream = file
-            writer.write_table()
+            file.write('# ' + table_name + '\n\n')
+            file.write('| {0} |\n'.format(' | '.join(str(y) for y in headers)))
+            file.write('| {0} |\n'.format(' | '.join("---" for _ in headers)))
+            for note in self.note_matrix:
+                file.write('| {0} |\n'.format(' | '.join(str(y) for y in note)))
 
 
 class MdExtractor:
     """
     Helper to extract information from the markdown document
     """
+
     def __init__(self):
-        self.table_regex =\
-            r"^.*?\|\s+?(.*?)\s+?\|\s+?(.*?)\s+?\|\s+?(.*?)\s+?\|.*$"
+        self.table_regex = \
+            r"^.*?\|\s+?(.*?)\s+?\|\s+?((?:\$\$[^$]*?\$\$|\$[^$]*?\$|.)*?)\s+?\|\s+?((?:\$\$[^$]*?\$\$|\$[^$]*?\$|.)*?)\s+?\|.*$"
+        self.table_header_regex = \
+            r"^.*?\|\s*?-*?\s*?\|\s*?-*?\s*?\|\s*?-*?\s*?\|\s*$"
         self.title_regex = r"^\#\s(.+?)\s\((.+?)\)"
         self.title_regex_without_id = r"^\#\s(.+)\n"
         self.image_src_regex = r"<img\s*src=\"(.*?)\".*?>"
@@ -222,7 +238,9 @@ class MdExtractor:
         the note
         """
         md_test = RegexHelper(markdown_row)
-        if md_test.match(self.table_regex):
+        if md_test.match(self.table_header_regex):
+            return None
+        elif md_test.match(self.table_regex):
             connected_files = list(re.findall(self.image_src_regex,
                                               md_test.group(2))) + \
                               list(re.findall(self.image_src_regex,
@@ -344,12 +362,17 @@ if __name__ == '__main__':
                     print('No deck info was found')
                     sys.exit(1)
                 else:
+                    if debug:
+                        print('Deck information extracted:', deck_information)
                     deck_creator = AnkiDeckCreator(deck_information)
+
             walk = md_extractor.extract_note(line)
+
             if debug:
-                print("walk", walk, "counter", counter)
+                print("line", line.strip(), "walk", walk, "counter", counter)
+
             if walk is not None:
-                # Ignore heading and section between header and body
+                # Ignore heading (1st hit) between header and body
                 if counter >= 1:
                     deck_creator.add_note(
                         note_id=walk['id'],
