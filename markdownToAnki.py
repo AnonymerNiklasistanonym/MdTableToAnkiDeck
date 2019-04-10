@@ -86,12 +86,18 @@ class AnkiDeckCreator(object):
         # Get CSS markup code
         with open(curr_dir + '/stylesheet.css', 'r') as cssFile:
             self.css_code = cssFile.read()
+        with open(curr_dir + '/stylesheet_html.css', 'r') as cssFile2:
+            self.css_code_html = cssFile2.read()
         # Get source code HTML/JS highlighting code
         with open(curr_dir + '/highlightJs_renderer.html', 'r') as highlightF:
             self.highlightJs_template_code = highlightF.read()
+        with open(curr_dir + '/highlightJs_renderer_html.html', 'r') as highlightF:
+            self.highlightJs_template_code_html = highlightF.read()
         # Get LaTeX math code HTML/JS render code
         with open(curr_dir + '/kaTex_renderer.html', 'r') as kaTexHtmlFile:
             self.kaTex_template_code = kaTexHtmlFile.read()
+        with open(curr_dir + '/kaTex_renderer_html.html', 'r') as kaTexHtmlFile:
+            self.kaTex_template_code_html = kaTexHtmlFile.read()
         # with open(curr_dir + '/mathJax_renderer.html', 'r') as mathJaxFile:
         #     self.mathJax_template_code = mathJaxFile.read()
         # Create Card model
@@ -214,6 +220,33 @@ class AnkiDeckCreator(object):
             file.write('| {0} |\n'.format(' | '.join("---" for _ in headers)))
             for note in self.note_matrix:
                 file.write('| {0} |\n'.format(' | '.join(str(y) for y in note)))
+
+    def write_to_file_html(self, file_name: str):
+        """
+        Write the HTML file to a specific file
+        :param file_name: The file name (Without `.html`)
+        """
+        table_name = self.deck_name + ' (' + str(self.deck_id) + ')\n'
+        headers = ["question", "answer"]
+        # Write to file
+        with open(file_name + '.html', 'w', encoding="utf-8") as file:
+            file.write('<!doctype html><html><head><meta charset="utf-8">')
+            file.write(self.kaTex_template_code_html)
+            file.write(self.highlightJs_template_code_html)
+            file.write('<title>' + table_name + '</title>')
+            file.write("<style>" + self.css_code_html + self.css_code +
+                       "</style>")
+            file.write('</head><body>')
+            file.write('<h1>' + table_name + '</h1><br>')
+            file.write('<table class="tablecss"><thead>')
+            file.write('<tr><th>{0}</th></tr>\n'.format('</th><th>'.join(str(y) for y in headers)))
+            file.write('</thead><tbody>')
+            for note in self.note_matrix:
+                # TODO integrate SVG data RAW
+                entry = [note[1], note[2]]
+                file.write('<tr><td class="card">{0}</td></tr>\n'.format('</td><td class="card">'.join(str(y) for y in entry)))
+            file.write('</tbody></table>')
+            file.write('</body></html>\n')
 
 
 class MdExtractor:
@@ -390,3 +423,4 @@ if __name__ == '__main__':
     if deck_creator is not None:
         deck_creator.write_to_file_anki(ANKI_FILE_NAME)
         deck_creator.write_to_file_md(MD_OUTPUT_FILE_NAME)
+        deck_creator.write_to_file_html(MD_OUTPUT_FILE_NAME)

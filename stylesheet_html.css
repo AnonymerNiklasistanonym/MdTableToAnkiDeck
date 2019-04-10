@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+.card {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 1em;
+}
+
+.card .katex {
+  font-size: 1.1em;
+  /* color: red; */
+}
+
+table.tablecss {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.tablecss>thead>tr>th,
+table.tablecss>tbody>tr>td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+table.tablecss>thead>tr:nth-child(even),
+table.tablecss>tbody>tr:nth-child(even) {
+  background-color: #dddddd;
+}

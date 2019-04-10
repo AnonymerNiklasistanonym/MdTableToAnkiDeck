@@ -1,0 +1,235 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.1/dist/katex.min.css"
+    integrity="sha384-dbVIfZGuN1Yq7/1Ocstc1lUEm+AT+/rCkibIcC/OmWo5f0EA48Vf8CytHzGrSwbQ" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.1/dist/katex.min.js"
+    integrity="sha384-2BKqo+exmr9su6dir+qCw08N2ZKRucY4PrGQPPWU1A7FtlCGjmEGFqXCv5nyM5Ij"
+    crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.1/dist/contrib/auto-render.min.js"
+    integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI"
+    crossorigin="anonymous"></script>
+<script>
+    /**
+     * Try to render all Latex Math in the ANKI card
+     * @throws Error if window.renderMathInElement wasn't found!
+     */
+    function renderMethodMdTableToAnkiDeck() {
+        console.info("MdTableToAnkiDeck > renderMethodMdTableToAnkiDeck()");
+        if (window.renderMathInElement !== null) {
+            console.info("renderMethodMdTableToAnkiDeck() window.renderMathInElement() was found");
+            document.querySelectorAll('.card').forEach(element => {
+                renderMathInElement(element, {
+                    delimiters: [{
+                        left: "$$",
+                        right: "$$",
+                        display: true
+                    },
+                    {
+                        left: "$",
+                        right: "$",
+                        display: false
+                    }
+                ]
+                });
+            })
+        } else {
+            throw Error("MdTableToAnkiDeck Error - Katex renderMathInElement() was not found!");
+        }
+    }
+
+    /**
+     * Get the necessary scripts
+     * @param callback {function} Gets called when scripts are loaded
+     */
+    function getScripts(callback) {
+        console.info("MdTableToAnkiDeck > getScripts()");
+        const katexVersion = '0.10.1'
+        const katexBasePath = `https://cdn.jsdelivr.net/npm/katex@${katexVersion}/dist/`
+        const katexSrc = `${katexBasePath}katex.min.js`
+        const katexAutoRendererSrc = `${katexBasePath}contrib/auto-render.min.js`
+
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = katexSrc;
+        document.body.appendChild(script);
+        script.addEventListener('load', function () {
+            console.info("script " + script.src + " was loaded");
+            const script2 = document.createElement('script');
+            script2.type = 'text/javascript';
+            script2.src = katexAutoRendererSrc;
+            document.body.appendChild(script2);
+            script2.addEventListener('load', function () {
+                console.info("script " + script2.src + " was loaded");
+                callback();
+            });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        try {
+            if (window.renderMathInElement !== null) {
+                // If the necessary render method exists run it
+                console.info("Katex renderMathInElement() was found, execute renderer");
+                renderMethodMdTableToAnkiDeck();
+            } else {
+                // Else get the scripts and run it then
+                console.info("Katex renderMathInElement() wasn't found, get scripts");
+                getScripts(() => {
+                    console.info("Katex scripts loaded, execute renderer");
+                    renderMethodMdTableToAnkiDeck();
+                })
+            }
+        } catch (e) {
+            console.error(e);
+            // If any error comes up get the scripts and run it then
+            console.info("MdTableToAnkiDeck Error get scripts and then render");
+            getScripts(() => {
+                console.info("Katex scripts loaded, execute renderer");
+                renderMethodMdTableToAnkiDeck();
+            })
+        }
+    })
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/vs.min.css">
+<script>
+    /**
+     * Try to render all source code in the ANKI card
+     * @throws Error if hljs.highlightBlock wasn't found!
+     */
+    function renderMethodMdTableToAnkiDeckSourceCode() {
+        console.info("MdTableToAnkiDeck > renderMethodMdTableToAnkiDeckSourceCode()");
+        if (window.hljs !== null && hljs.highlightBlock !== null) {
+            console.info("MdTableToAnkiDeck > renderMethodMdTableToAnkiDeckSourceCode(): hljs.highlightBlock() was found");
+            document.querySelectorAll('.card pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
+        } else {
+            throw Error("MdTableToAnkiDeck Error - highlight.js hljs.initHighlightingOnLoad() was not found!");
+        }
+    }
+
+    /**
+     * Get the necessary scripts
+     * @param callback {function} Gets called when scripts are loaded
+     */
+    function getScriptsSourceCode(callback) {
+        console.info("MdTableToAnkiDeck > getScriptsSourceCode()");
+        const highlightJsVersion = '9.15.6'
+        const highlightJsBasePath = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/${highlightJsVersion}/`
+        const highlightJsSrc = `${highlightJsBasePath}highlight.min.js`
+
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = highlightJsSrc;
+        document.body.appendChild(script);
+        script.addEventListener('load', function () {
+            console.info("script " + script.src + " was loaded");
+            callback();
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function (event) {
+        try {
+            if (window.hljs !== null && hljs.highlightBlock !== null) {
+                // If the necessary render method exists run it
+                console.info("highlightjs hljs.highlightBlock() was found, execute renderer");
+                renderMethodMdTableToAnkiDeckSourceCode();
+            } else {
+                // Else get the scripts and run it then
+                console.info("highlightjs hljs.highlightBlock() wasn't found, get scripts");
+                getScriptsSourceCode(() => {
+                    console.info("highlightjs scripts loaded, execute renderer");
+                    renderMethodMdTableToAnkiDeckSourceCode();
+                })
+            }
+        } catch (e) {
+            console.error(e);
+            // If any error comes up get the scripts and run it then
+            console.info("MdTableToAnkiDeck Error - get scripts and then render");
+            getScriptsSourceCode(() => {
+                console.info("highlightjs scripts loaded, execute renderer");
+                renderMethodMdTableToAnkiDeckSourceCode();
+            })
+        }
+    })
+</script>
+<title>MdTableToAnkiDemo (123456)
+</title><style>@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+.card {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 1em;
+}
+
+.card .katex {
+  font-size: 1.1em;
+  /* color: red; */
+}
+
+table.tablecss {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.tablecss>thead>tr>th,
+table.tablecss>tbody>tr>td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+table.tablecss>thead>tr:nth-child(even),
+table.tablecss>tbody>tr:nth-child(even) {
+  background-color: #dddddd;
+}
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+.card {
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 1em;
+}
+
+.card .katex {
+    font-size: 1.1em;
+    /* color: red; */
+}
+
+.card pre.inline {
+    display: inline-table;
+}
+
+.card hr {
+    border: 0;
+    height: 0.1em;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+}
+
+.card table,
+.card td,
+.card th {
+    border: 0.2em solid #ddd;
+    text-align: left;
+}
+
+.card table {
+    border-collapse: collapse;
+}
+
+.card th,
+.card td {
+    padding: 0.3em;
+}
+
+/*
+.card {
+    background-color: black;
+    color: white;
+}
+*/
+</style></head><body><h1>MdTableToAnkiDemo (123456)
+</h1><br><table class="tablecss"><thead><tr><th>question</th><th>answer</th></tr>
+</thead><tbody><tr><td class="card">Latex math is supported $\sum^n_{i=1} x^2 = \mathbb{R}^3 - 42$</td><td class="card">$\pm\infty \mathbf{\mathcal{A}}$</td></tr>
+<tr><td class="card">Images in the root directory are supported:<br><img src="image.svg"><br><img src="image.png"></td><td class="card">Answer</td></tr>
+<tr><td class="card">Images in a different directory are supported:<br><img src="attachments/image_2.svg"></td><td class="card">Answer</td></tr>
+<tr><td class="card">Schnittpunkte zweier Funktionsgraphen? ($f(x)=x^2, g(x)=(x-2)^2$)</td><td class="card">Der Schnittpunkt der Graphen zweier Funktionen wird ermittelt, indem die Funktionsterme gleich gesetzt und nach $x$ aufgelöst werden. ÄÖÜß&<br>$\begin{aligned}f(x)&=g(x)\\x^2 &= (x-2)^2 \\x^2&= x^2 - 2 \cdot x \cdot 2 + 2^2 \\ x^2 &= x^2 - 4x + 4 \quad-x^2 \\ 0 &=-4x + 4\quad+4x, :4 \\x &= 1\end{aligned}$</td></tr>
+<tr><td class="card">Even source (inline <pre class="inline"><code class="js">const x = 42;</code></pre>) code can be displayed <pre><code class="cpp">int const *ptr; // ptr is a pointer to constant int</code></pre></td><td class="card"><pre><code class="json">[<br>  {<br>    "title": "apples",<br>    "count": [12000, 20000],<br>    "description": {<br>      "text": "...",<br>      "sensitive": false<br>    }<br>  },<br>  {<br>    "title": "oranges",<br>    "count": [17500, null],<br>    "description": {<br>      "text": "...",<br>      "sensitive": false<br>    }<br>  }<br>]</code></pre></td></tr>
+</tbody></table></body></html>
