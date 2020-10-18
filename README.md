@@ -4,6 +4,14 @@ Python script that makes it possible to create flashcards in a markdown editor, 
 
 ---
 
+**This project is no longer in active development!**
+
+**It has been replaced by a similar project that is using document sections instead of tables because of inherent problems with (multiline) table cells:**
+
+[AnonymerNiklasistanonym/Md2Anki](https://github.com/AnonymerNiklasistanonym/Md2Anki)
+
+---
+
 If you want to see a quick demo check the demo directory: [Demo](demo)
 
 ---
